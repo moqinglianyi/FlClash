@@ -66,13 +66,13 @@ jobs:
           PY
 
       - name: Build unsigned iOS app
-        run: flutter build ios --release --no-codesign
+        run: xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -sdk iphoneos -derivedDataPath build/ios/DerivedData CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM="" build
 
       - name: Package unsigned IPA
         run: |
           rm -rf Payload build/ios/ipa
           mkdir -p Payload build/ios/ipa
-          cp -R build/ios/iphoneos/Runner.app Payload/
+          cp -R build/ios/DerivedData/Build/Products/Release-iphoneos/Runner.app Payload/
           ditto -c -k --sequesterRsrc --keepParent Payload build/ios/ipa/FlClash-unsigned.ipa
 
       - name: Upload unsigned IPA
