@@ -54,23 +54,31 @@ jobs:
           if podfile.exists():
               s = podfile.read_text()
               s = re.sub(r'^\s*#?\s*platform :ios,.*$', "platform :ios, '14.0'", s, count=1, flags=re.M)
-              if "platform :ios" not in s:
+              if 'platform :ios' not in s:
                   s = "platform :ios, '14.0'\n" + s
               podfile.write_text(s)
           for p in Path('ios').rglob('*'):
               if p.is_file() and p.suffix in ('.pbxproj', '.xcconfig', '.plist'):
-                  try: p.write_text(p.read_text().replace('13.0', '14.0'))
-                  except UnicodeDecodeError: pass
+                  try:
+                      p.write_text(p.read_text().replace('13.0', '14.0'))
+                  except UnicodeDecodeError:
+                      pass
           PY
-      - name: Build unsigned IPA
-        run: flutter build ipa --release --no-codesign
+
+      - name: Build unsigned iOS app
+        run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned IPA
+        run: |
+          rm -rf Payload build/ios/ipa
+          mkdir -p Payload build/ios/ipa
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          ditto -c -k --sequesterRsrc --keepParent Payload build/ios/ipa/FlClash-unsigned.ipa
 
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
           name: flclash-ios-unsigned-${{ github.run_number }}
-          path: |
-            build/ios/ipa/*.ipa
-            build/ios/archive/*.xcarchive
+          path: build/ios/ipa/*.ipa
           if-no-files-found: error
           retention-days: 14
