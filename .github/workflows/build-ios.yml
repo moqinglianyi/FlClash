@@ -1,0 +1,72 @@
+name: Build unsigned iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'ios-v*'
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.44.4'
+
+jobs:
+  build-ios:
+    name: Build unsigned IPA
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install iOS dependencies
+        run: |
+          flutter precache --ios
+          flutter pub get
+
+      - name: Generate iOS project when missing
+        if: ${{ !hashFiles('ios/Runner.xcodeproj/project.pbxproj') }}
+        run: |
+          flutter create --platforms=ios --org com.moqinglianyi --project-name fl_clash .
+          flutter pub get
+
+      - name: Set iOS deployment target
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('ios/Podfile')
+          if p.exists():
+              s = p.read_text()
+              s = s.replace("# platform :ios, '12.0'", "platform :ios, '13.0'")
+              if "platform :ios" not in s:
+                  s = "platform :ios, '13.0'\n" + s
+              p.write_text(s)
+          PY
+
+      - name: Build unsigned IPA
+        run: flutter build ipa --release --no-codesign
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: flclash-ios-unsigned-${{ github.run_number }}
+          path: |
+            build/ios/ipa/*.ipa
+            build/ios/archive/*.xcarchive
+          if-no-files-found: error
+          retention-days: 14
