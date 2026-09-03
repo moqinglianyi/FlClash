@@ -47,7 +47,21 @@ jobs:
 
       - name: Set iOS deployment target
         run: |
-          python3 -c "from pathlib import Path; [p.write_text(p.read_text().replace('13.0', '14.0')) for p in Path('ios').rglob('*') if p.is_file() and p.suffix in ('.pbxproj', '.xcconfig', '.plist')]"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          podfile = Path('ios/Podfile')
+          if podfile.exists():
+              s = podfile.read_text()
+              s = re.sub(r'^\s*#?\s*platform :ios,.*$', "platform :ios, '14.0'", s, count=1, flags=re.M)
+              if "platform :ios" not in s:
+                  s = "platform :ios, '14.0'\n" + s
+              podfile.write_text(s)
+          for p in Path('ios').rglob('*'):
+              if p.is_file() and p.suffix in ('.pbxproj', '.xcconfig', '.plist'):
+                  try: p.write_text(p.read_text().replace('13.0', '14.0'))
+                  except UnicodeDecodeError: pass
+          PY
       - name: Build unsigned IPA
         run: flutter build ipa --release --no-codesign
 
