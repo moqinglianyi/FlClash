@@ -49,6 +49,13 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          for p in Path('ios').rglob('*'):
+              if p.is_file() and p.suffix in {'.pbxproj', '.xcconfig', '.plist'}:
+                  try:
+                      s = p.read_text()
+                      p.write_text(s.replace('13.0', '14.0'))
+                  except UnicodeDecodeError:
+                      pass
           p = Path('ios/Podfile')
           if p.exists():
               s = p.read_text()
