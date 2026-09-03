@@ -65,6 +65,10 @@ jobs:
                       pass
           PY
 
+      - name: Install CocoaPods dependencies
+        working-directory: ios
+        run: pod install --repo-update
+
       - name: Build unsigned iOS app
         run: xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -sdk iphoneos -derivedDataPath build/ios/DerivedData CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM="" build
 
